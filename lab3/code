@@ -1,1 +1,145 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from scipy.spatial.distance import minkowski
+import dataset
 
+def dot_product(a,b):
+    s=0
+    for i in range(len(a)):
+        s+=a[i]*b[i]
+    return s
+
+def euclidean_norm(v):
+    s=0
+    for x in v:
+        s+=x*x
+    return s**0.5
+
+def manual_mean(v):
+    s=0
+    for x in v:
+        s+=x
+    return s/len(v)
+
+def manual_variance(v,m):
+    s=0
+    for x in v:
+        s+=(x-m)**2
+    return s/len(v)
+
+def minkowski_distance(a,b,p):
+    s=0
+    for i in range(len(a)):
+        s+=abs(a[i]-b[i])**p
+    return s**(1/p)
+
+def custom_knn_predict(X,y,t,k):
+    d=[]
+    for i in range(len(X)):
+        d.append((euclidean_norm(X[i]-t),y[i]))
+    d.sort(key=lambda x:x[0])
+    v={}
+    for i in range(k):
+        lbl=d[i][1]
+        v[lbl]=v.get(lbl,0)+1
+    return max(v,key=v.get)
+
+def confusion_metrics(y,yh):
+    tp=tn=fp=fn=0
+    for i in range(len(y)):
+        if y[i]==1 and yh[i]==1:
+            tp+=1
+        elif y[i]==0 and yh[i]==0:
+            tn+=1
+        elif y[i]==0 and yh[i]==1:
+            fp+=1
+        elif y[i]==1 and yh[i]==0:
+            fn+=1
+    acc=(tp+tn)/(tp+tn+fp+fn)
+    prec=tp/(tp+fp) if tp+fp!=0 else 0
+    rec=tp/(tp+fn) if tp+fn!=0 else 0
+    f1=(2*prec*rec)/(prec+rec) if prec+rec!=0 else 0
+    return tp,tn,fp,fn,acc,prec,rec,f1
+
+def main():
+    data=dataset.data
+    X=data.iloc[:,:-1].values
+    y=data.iloc[:,-1].values
+
+    A=X[0]
+    B=X[1]
+
+    mdot=dot_product(A,B)
+    ndot=np.dot(A,B)
+    mnorm=euclidean_norm(A)
+    nnorm=np.linalg.norm(A)
+
+    c0=X[y==0]
+    c1=X[y==1]
+    m0=np.mean(c0,axis=0)
+    m1=np.mean(c1,axis=0)
+    s0=np.std(c0,axis=0)
+    s1=np.std(c1,axis=0)
+    idist=np.linalg.norm(m0-m1)
+
+    f=X[:,0]
+    h,b=np.histogram(f,bins=5)
+    fm=manual_mean(f)
+    fv=manual_variance(f,fm)
+    plt.hist(f,bins=5)
+    plt.show()
+
+    md=[]
+    for p in range(1,11):
+        md.append(minkowski_distance(A,B,p))
+    plt.plot(range(1,11),md)
+    plt.show()
+    smink=minkowski(A,B,3)
+
+    Xtr,Xte,ytr,yte=train_test_split(X,y,test_size=0.3,random_state=1)
+
+    knn=KNeighborsClassifier(n_neighbors=3)
+    knn.fit(Xtr,ytr)
+    acc_knn=knn.score(Xte,yte)
+    pred=knn.predict(Xte)
+
+    cpred=[]
+    for v in Xte:
+        cpred.append(custom_knn_predict(Xtr,ytr,v,3))
+
+    ks=[]
+    accs=[]
+    max_k=len(Xtr)
+    for k in range(1,max_k+1):
+        m=KNeighborsClassifier(n_neighbors=k)
+        m.fit(Xtr,ytr)
+        ks.append(k)
+        accs.append(m.score(Xte,yte))
+
+    tp,tn,fp,fn,acc,prec,rec,f1=confusion_metrics(yte,pred)
+
+    print("A1:",mdot,ndot,mnorm,nnorm)
+    print("A2:",m0,m1,s0,s1,idist)
+    print("A3:",fm,fv)
+
+    print("A4 Minkowski distances (p=1..10):",md)
+    print("A5 SciPy Minkowski (p=3):",smink)
+
+    print("A6 Train size:",len(Xtr),"Test size:",len(Xte))
+    print("A7 kNN trained with k=3")
+
+    print("A8 Accuracy:",acc_knn)
+    print("A9 Predictions (sklearn):",pred)
+    print("A10 Predictions (custom):",cpred)
+
+    print("A11 k values:",ks)
+    print("A11 Accuracies:",accs)
+
+    print("A12/A13:",tp,tn,fp,fn,acc,prec,rec,f1)
+
+    print("A14 Comparison: kNN is distance-based and non-parametric, "
+          "matrix inversion assumes linear separability and invertible matrices")
+
+main()
