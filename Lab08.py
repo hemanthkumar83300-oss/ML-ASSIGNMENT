@@ -131,7 +131,7 @@ def two_output_train(X, y):
 if __name__ == "__main__":
 
     
-    file_path = r"D:\Sem4\ml\lab\assignments\done\Lab08\Coherence_bert_cls_embeddings.csv"
+    file_path = r"C:\Users\heman\Downloads\Lab08\Lab08\Coherence_bert_cls_embeddings.csv"
 
     X_data, y_data = get_data(file_path)
 
